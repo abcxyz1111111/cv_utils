@@ -53,9 +53,12 @@ if __name__ == '__main__':
 
     #parse arguments
     parser = argparse.ArgumentParser(description="Calibrate a camera for use with openCV")
-    parser.add_argument('-c','--camera', default=0, action="store", type=int,
-                        help='Select an index value for the camera 0-255')
+    parser.add_argument('-c','--camera', default=0, action="store",
+                        help='Camera source')
+    parser.add_argument('-s','--samples', default=20, action="store",
+                        help='Number of samples to collect')
     args, unknown = parser.parse_known_args()
+
 
 
 
@@ -65,7 +68,7 @@ if __name__ == '__main__':
 
 
     #number of good images before processing calibration
-    goodImages = 14
+    goodImages = args.samples
 
     # number of INTERNAL corners (8x6) for a (9x7) grid
     pattern_size = (8, 6)
@@ -113,6 +116,7 @@ if __name__ == '__main__':
                 #display processed image
                 vis = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
                 cv2.drawChessboardCorners(vis, pattern_size, corners, found)
+                vis = cv2.resize(vis,(0,0),fx=0.3,fy=0.3)
                 cv2.imshow('vis',vis)
 
                 #increment valid image count
@@ -127,10 +131,11 @@ if __name__ == '__main__':
 
             print 'ok'
 
+    print "Analyzing please wait..."
     #analyze images to calculte distortion
     rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, (w, h), None, None)
 
-
+    print "RMS: ", rms
     print "camera matrix:\n", camera_matrix
     print "distortion coefficients: ", dist_coefs
     cv2.destroyAllWindows()
