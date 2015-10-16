@@ -15,20 +15,41 @@ Config class : handles config file for projects
 Todo: Auto generate config file
 '''
 
+
+#list of configurations open
+configs = []
+
+#get a config by name
+def get_config(name = None):
+	#return first config
+	if name is None:
+		return configs[0]
+	#return config by name
+	for conf in configs:
+		if conf.name == name:
+			return conf
+	#no config found
+	return None
+
+
 class Config(object):
 
-    def __init__(self, name='~/config.cnf'):
+    def __init__(self, name=None, location='~/config.cnf'):
         # create the global parser object
         self.parser = ConfigParser.SafeConfigParser()
 
+        self.name = name
+
         #load default config file
-        self.get_file(name)
+        self.get_file(location)
+
+        configs.append(self)
 
 
     #get_file - open a config file
-    def get_file(self,name):
+    def get_file(self,location):
         # default config file
-        self.config_file = expanduser(name)
+        self.config_file = expanduser(location)
 
         # read the config file into memory
         self.read()

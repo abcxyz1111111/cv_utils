@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='nuge_utils',
+    name='cv_utils',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
@@ -12,7 +12,7 @@ setup(
     description='Various packages for vision and robotics based python projects',
 
     # The project's main homepage.
-    url='https://github.com/djnugent/nuge_utils',
+    url='https://github.com/djnugent/cv_utils',
 
     # Choose your license
     license='GPLv3',
@@ -35,7 +35,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='nuge_utils',
+    keywords='cv_utils',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().

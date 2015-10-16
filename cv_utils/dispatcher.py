@@ -33,14 +33,13 @@ The first result of the tuple MUST BE an interal run time(in secs) of the functi
 
 class Dispatcher(object):
 
-	def __init__(self,desired_cores,image_capture_core = False):
+	def __init__(self,desired_cores):
 
-		#The number of core to be used while processing image data
+		available_cores = multiprocessing.cpu_count()
 		#This number may be less than the actaul number of cores on the CPU depending on the users specifications
-		#cores = min(desiredCores, multiprocessing.cpu_count()) //dont allow more cores than the CPU has available and don;t run more than the user wants
-		available_cores = min(desired_cores, multiprocessing.cpu_count())
-		#check if a core is already in use for background image capture
-		self.cores_processing = max(available_cores - cores_image_capture,1)
+		self.cores_processing = min(available_cores, desired_cores)
+		#cores left for other tasks
+		self.remaining_cores = available_cores - self.cores_processing
 
 
 		#The time(in secs) is takes to capture an Image
@@ -180,8 +179,8 @@ class Dispatcher(object):
 
 
 
-# create a single global object
-dispatch = Dispatcher()
+
 
 if __name__ == "__main__":
+	dispatch = Dispatcher()
 	dispatch.main()

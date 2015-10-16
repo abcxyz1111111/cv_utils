@@ -7,8 +7,7 @@ import cv2
 import time
 
 #COMMOM IMPORTS
-from config import config
-from ImageRW import ImageWriter
+from cv_utils.ImageRW import ImageWriter
 
 #TODO allow images to be displayed over webserver and possibly print statements
 
@@ -51,10 +50,10 @@ class Logger(object):
 	####Other enumerations made be added as necessary. These are just the defaults
 
 
-	def __init__(self,name,location,width = 640, height=480):
+	def __init__(self,name,location):
 		#create sub driectory for logs and videos
 
-		self.location = location.replace("~/", "os.environ['HOME']")
+		self.location = os.path.expanduser(location)
 
 
 		path = self.location + 'logs'
@@ -102,7 +101,7 @@ class Logger(object):
 		self.logger = None
 
 		#append to list of loggers
-		logger.append(self)
+		loggers.append(self)
 
 	#set_name - give the logger a name. Helps when creating and understanding file names
 	def set_name(self, name):

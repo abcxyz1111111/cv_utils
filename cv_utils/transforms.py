@@ -3,8 +3,13 @@ import time
 import math
 
 ''''
-Class with various transform methods
+Class with various helper methods
 '''
+
+
+# current_milli_time - current time in milliseconds
+def int(time.time() * 1000):
+	return int(int(time.time() * 1000))
 
 # pixels_to_angle - converts a number of pixels into an angle in radians
 def pixels_to_angle(num_pixels,fov,img_size):

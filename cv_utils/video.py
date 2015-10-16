@@ -24,10 +24,10 @@ Fix camera distortion stuff: How to pass in distortion matrix and image size????
 
 class Video:
 
-    def __init__(self,index = 0,background_cap = False):
+    def __init__(self,source = "0",background_cap = False):
 
         # get which camera we will use
-        self.camera_index = index
+        self.camera_source = source
         '''
         #get camera distortion matrix and intrinsics. Defaults: logitech c920
         mtx = np.array([[ 614.01269552,0,315.00073982],
@@ -38,41 +38,55 @@ class Video:
         self.matrix  = VN_config.get_array('camera','matrix', mtx)
         self.distortion = VN_config.get_array('camera', 'distortion', dist)
 
-        self.newcameramtx, self.roi=cv2.getOptimalNewCameraMatrix(self.matrix,self.distortion,(self.img_width,self.img_height),1,(self.img_width,self.img_height))
+
         '''
+        self.img_width = 1280
+        self.img_height= 720
+
+        self.matrix = np.array([[764.17228563, 0.0, 676.22364905],
+                         [0.0, 766.63752673, 349.10277454],
+                         [0.0, 0.0, 1.0]])
+        self.distortion = np.array([[-0.26516979,  0.00344694,  0.00081852, -0.00055108,  0.1954367 ]])
+
+        self.newcameramtx, self.roi=cv2.getOptimalNewCameraMatrix(self.matrix,self.distortion,(self.img_width,self.img_height),1,(self.img_width,self.img_height))
+
 
         #create a camera object
         self.camera = None
 
-        #does the user want to capture images in the background
-        self.background_capture = background_cap
-
         # background image processing variables
+        self.background_capture = background_cap #does the user want to capture images in the background
         self.proc = None              # background process object
         self.parent_conn = None       # parent end of communicatoin pipe
-        self.is_backgroundCap = False #state variable for background capture
 
 
 
     # get_camera - initialises camera and returns VideoCapture object
-    def get_camera(self,index=0):
+    def get_camera(self,src="0"):
         if self.camera is not None:
             return self.camera
         else:
-            #generic video capture device
-            self.camera = cv2.VideoCapture(index)
+            print 'Starting Camera....'
+            # setup video capture
+            #PX4flow sensor
+            if(src == "PX4flow"):
+                self.camera = flow_cam
 
+            #generic video capture device
+            else:
+                try:
+                    self.camera = cv2.VideoCapture(int(src))
+                except ValueError:
+                    self.camera = cv2.VideoCapture(src)
+
+            # check we can connect to camera
             if not self.camera.isOpened():
                 print "failed to open camera, exiting!"
                 sys.exit(0)
-            return self.camera
 
-    # set_camera - use an already existing camera or non-opencv source for the image
-    def set_camera(self,cam):
-        self.camera = cam
-        if not self.camera.isOpened():
-            print "failed to open camera, exiting!"
-            sys.exit(0)
+            print 'Camera Open!'
+
+            return self.camera
 
 
     #
@@ -90,15 +104,22 @@ class Video:
         latest_image = None
 
         while True:
-            # check if the parent wants kill the process
+            # constantly get the image from the webcam
+            success_flag, image=self.camera.read()
+
+            # if successful overwrite our latest image
+            if success_flag:
+                latest_image = image
+
+            # check if the parent wants the image
             if imgcap_connection.poll():
                 recv_obj = imgcap_connection.recv()
                 # if -1 is received we exit
                 if recv_obj == -1:
                     break
 
-            # constantly get the image from the webcam
-            imgcap_connection.send(self.camera.read())
+                # otherwise we return the latest image
+                imgcap_connection.send(success_flag,latest_image)
 
         # release camera when exiting
         self.camera.release()
@@ -106,7 +127,7 @@ class Video:
 
     def stop_capture(self):
         #Clean up when exitting background capture
-        if(self.is_backgroundCap):
+        if(self.background_capture):
             # send exit command to image capture process
             self.parent_conn.send(-1)
 
@@ -114,57 +135,47 @@ class Video:
             self.proc.join()
         #no clean up required with regular capture
 
-    def start_capture(self,index = 0):
+    def start_capture(self):
         #make sure a camera is intialized
         if self.camera is None:
-            print "Opening Camera"
-            self.get_camera(index)
-        print "Camera open!"
+            self.get_camera(self.camera_source)
 
         #background capture is desired
         if self.background_capture:
-            #if we have more than one core available, then start background capture
-            if(self.cores_available > 1):
 
-                # create pipe
-                self.parent_conn, imgcap_conn = multiprocessing.Pipe()
+            # create pipe
+            self.parent_conn, imgcap_conn = multiprocessing.Pipe()
 
-                # create and start the sub process and pass it it's end of the pipe
-                self.proc = multiprocessing.Process(target=self.image_capture_background, args=(imgcap_conn,))
-                self.proc.daemon = True
-                self.proc.start()
-
-                #Mark that we are in background capture mode
-                self.is_backgroundCap = True
-        else:
-            #Not enough cores for background capture or just doing regular capture
-            self.is_backgroundCap = False
+            # create and start the sub process and pass it it's end of the pipe
+            self.proc = multiprocessing.Process(target=self.image_capture_background, args=(imgcap_conn,))
+            self.proc.daemon = True
+            self.proc.start()
 
 
     # get_image - returns latest image from the camera captured from the background process
     def get_image(self):
-
         #grab image from pipe of background capture
-        if(self.is_backgroundCap):
+        if(self.background_capture):
             # return immediately if pipe is not initialised
             if self.parent_conn == None:
                 return None
 
-            if self.is_image_available():
-                # grab image
-                return self.parent_conn.recv()
-            else:
-                return False, None
+            # send request to image capture for image
+            self.parent_conn.send(self.img_counter)
+
+            # increment counter for next interation
+            self.img_counter = self.img_counter + 1
+
+            # wait endlessly until image is returned
+            success_flag, img = self.parent_conn.recv()
 
         #use standard image cap
-        return self.camera.read()
+        else:
+            #Grab an image
+            success_flag, img = self.camera.read()
 
-    # is_image_available - Return if an image is ready from background capture
-    def is_image_available(self):
-        if self.background_capture:
-            #check to see if a process has finished and sent data
-		    return self.parent_conn.poll()
-        return True
+        # return image to caller
+        return success_flag,img
 
     #undisort_image- removes any distortion caused by the camera lense
     def undisort_image(self,frame):
@@ -176,27 +187,24 @@ class Video:
         dst = dst[y:y+h, x:x+w]
 
         return dst
-
     # main - tests SmartCameraVideo class
     def main(self):
         #open a camera
         #self.get_camera(0)
 
         # start background process
-        self.start_capture(self.camera_index)
+        self.start_capture()
 
         #did we start background capture
-        print 'Background capture {0}'.format(self.is_backgroundCap)
+        print 'Background capture {0}'.format(self.background_capture)
 
         while True:
             # send request to image capture for image
-            img = self.get_image()
-
-            #undistort image
-            #img = self.undisort_image(img)
-
+            ret, img = self.get_image()
             # check image is valid
-            if not img is None:
+            if img is not None:
+                #undistort image
+                img = self.undisort_image(img)
                 # display image
                 cv2.imshow ('image_display', img)
             else:

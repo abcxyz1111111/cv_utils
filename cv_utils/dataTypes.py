@@ -1,6 +1,5 @@
 import math
 
-
 class Point(object):
 	def __init__(self, x = None, y = None, tup = None):
 		if tup is not None:
@@ -22,11 +21,33 @@ class Point(object):
 	def tuple(self):
 		return (self.x,self.y)
 
+	def int(self):
+		self.x = int(self.x)
+		self.y = int(self.y)
+
+	def float(self):
+		self.x *= 1.0
+		self.y *= 1.0
+
 	def __add__(self,other):
 		return Point(self.x + other.x, self.y + other.y)
 
 	def __sub__(self,other):
 		return Point(self.x - other.x, self.y - other.y)
+
+	def __mul__(self,scalar):
+		return Point(self.x * scalar, self.y * scalar)
+
+	def __div__(self,scalar):
+		return Point(self.x / scalar, self.y / scalar)
+
+	def __getattr__(self,k):
+		if k == 0:
+			return x
+		if k == 1:
+			return y
+		raise AttributeError
+
 
 	def __str__(self):
 		return "({0}, {1})".format(self.x,self.y)
@@ -55,6 +76,15 @@ class Point3(object):
 
 	def __sub__(self,other):
 		return Point(self.x - other.x, self.y - other.y, self.z - other.z)
+
+	def __getattr__(self,k):
+		if k == 0:
+			return x
+		if k == 1:
+			return y
+		if k == 2:
+			return z
+		raise AttributeError
 
 	def __str__(self):
 		return "({0}, {1})".format(self.x,self.y)

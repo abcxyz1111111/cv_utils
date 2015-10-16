@@ -47,6 +47,8 @@ camera matrix:
 distortion coefficients:  [ 0.12269303 -0.26618881  0.00129035  0.00081791  0.17005303]
 '''
 
+cnt = 0
+
 if __name__ == '__main__':
 
 
@@ -55,7 +57,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Calibrate a camera for use with openCV")
     parser.add_argument('-c','--camera', default=0, action="store",
                         help='Camera source')
-    parser.add_argument('-s','--samples', default=20, action="store",
+    parser.add_argument('-s','--samples', default=20, action="store", type = int,
                         help='Number of samples to collect')
     args, unknown = parser.parse_known_args()
 
@@ -84,18 +86,22 @@ if __name__ == '__main__':
     img_points = []
     h, w = 0, 0
 
-
+    print "Please capture {0} good images".format(goodImages)
     x = 0
     while x < goodImages:
+
+
         #get image
         ret, img = cap.read();
+
+
+        if img is None:
+          print "Failed to read", x
+          break
 
         #make it black and white
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        if img is None:
-          print "Failed to read", x
-          continue
 
         cv2.imshow('raw',img)
         k = cv2.waitKey(1)  & 0xFF
@@ -103,7 +109,7 @@ if __name__ == '__main__':
         #process frame when user press 'c' key
         if k == ord('c'):
 
-            print 'processing %d...' % x,
+            print 'processing {0}...'.format(x)
 
             h, w = img.shape[:2]
             found, corners = cv2.findChessboardCorners(img, pattern_size)
@@ -131,7 +137,11 @@ if __name__ == '__main__':
 
             print 'ok'
 
-    print "Analyzing please wait..."
+        if k == 0x27: #esc
+            break
+
+    print "Analyzing {0} images please wait...".format(x)
+    cv2.destroyAllWindows()
     #analyze images to calculte distortion
     rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, (w, h), None, None)
 
