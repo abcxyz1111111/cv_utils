@@ -148,27 +148,21 @@ class VehicleControl(object):
             self.vehicle.flush()
 
 
-
     #get_location - returns the lat, lon, alt of vehicle
     def get_location(self, timestamp = None):
         if timestamp is not None: #interpolate
             loc = self.vehicle_pos.get_location(timestamp)
             if loc is not None:
-                return loc
-        return self.vehicle.location #most recent reading if interpolation fails or isn't requested
-
-#FIXME print if we fail interpolation
+                return True, loc
+        return False, self.vehicle.location #most recent reading if interpolation fails or isn't requested
 
     #get_attitude - returns pitch, roll, and yaw of vehicle
     def get_attitude(self, timestamp = None):
         if timestamp is not None: #interpolate
             pos = self.vehicle_pos.get_attitude(timestamp)
             if pos is not None:
-                return pos
-        return self.vehicle.attitude #most recent reading if interpolation fails or isn't requested
-
-#FIXME print if we fail interpolation
-
+                return True, pos
+        return False, self.vehicle.attitude #most recent reading if interpolation fails or isn't requested
 
     #get_home - get the home location for this mission
     def get_home(self, wait_for_arm = False):
@@ -266,7 +260,7 @@ vehicle_pos - Used to interpolate between data points
 """
 class Vehicle_Pos(object):
     def __init__(self):
-        self.size = 15
+        self.size = 50
         self.location_buffer = np.empty((self.size),object)
         self.attitude_buffer = np.empty((self.size),object)
         self.lb_index = 0

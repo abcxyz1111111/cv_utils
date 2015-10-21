@@ -13,7 +13,6 @@ import numpy as np
 video.py
 This file includes functions to:
     Initialise the camera
-    Initialise the output video
 """
 
 '''
@@ -67,17 +66,12 @@ class Video:
             return self.camera
         else:
             print 'Starting Camera....'
-            # setup video capture
-            #PX4flow sensor
-            if(src == "PX4flow"):
-                self.camera = flow_cam
 
-            #generic video capture device
-            else:
-                try:
-                    self.camera = cv2.VideoCapture(int(src))
-                except ValueError:
-                    self.camera = cv2.VideoCapture(src)
+            #setup generic video capture device
+            try:
+                self.camera = cv2.VideoCapture(int(src))
+            except ValueError:
+                self.camera = cv2.VideoCapture(src)
 
             # check we can connect to camera
             if not self.camera.isOpened():
@@ -88,6 +82,15 @@ class Video:
 
             return self.camera
 
+    # set_camera - use non_opencv video device
+    def set_camera(self,camera):
+        # check we can connect to camera
+        if not camera.isOpened():
+            print "failed to open camera, exiting!"
+            sys.exit(0)
+        else:
+            self.camera = camera
+        print 'Camera Open!'
 
     #
     # background image processing routines
@@ -119,7 +122,7 @@ class Video:
                     break
 
                 # otherwise we return the latest image
-                imgcap_connection.send(success_flag,latest_image)
+                imgcap_connection.send((success_flag,latest_image))
 
         # release camera when exiting
         self.camera.release()
@@ -161,10 +164,7 @@ class Video:
                 return None
 
             # send request to image capture for image
-            self.parent_conn.send(self.img_counter)
-
-            # increment counter for next interation
-            self.img_counter = self.img_counter + 1
+            self.parent_conn.send(0)
 
             # wait endlessly until image is returned
             success_flag, img = self.parent_conn.recv()

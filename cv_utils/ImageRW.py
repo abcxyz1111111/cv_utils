@@ -16,7 +16,7 @@ class ImageWriter():
 
 	def write(self, img):
 
-		filename = self.dir + "/" + str(self.frame) + '.bmp'
+		filename = self.dir + "/" + str(self.frame) + '.png'
 		cv2.imwrite(filename,img)
 		self.frame += 1
 
@@ -35,14 +35,14 @@ class ImageReader():
 		return os.path.exists(self.dir)
 
 	def read(self):
-		filename = self.dir + "/" + str(self.frame) + '.bmp'
+		filename = self.dir + "/" + str(self.frame) + '.png'
 		img = cv2.imread(filename)
 		if img is None or (self.frame > self.stop and self.stop != 0):
 			#Loop footage
 			if self.loop == True and self.frame > self.start:
 				self.frame = self.start
 				print 'loop'
-				filename = self.dir + "/" + str(self.frame) + '.bmp'
+				filename = self.dir + "/" + str(self.frame) + '.png'
 				img = cv2.imread(filename)
 			else:
 				img = None
@@ -52,7 +52,7 @@ class ImageReader():
 		return (True ,img)
 
 	def peek(self, frame_num):
-		filename = self.dir + "/" + str(frame_num) + '.bmp'
+		filename = self.dir + "/" + str(frame_num) + '.png'
 		img = cv2.imread(filename)
 		return (True,img)
 
