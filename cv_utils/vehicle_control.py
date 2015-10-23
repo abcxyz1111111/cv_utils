@@ -35,12 +35,12 @@ class VehicleControl(object):
         self.vehicle = None
 
         self.last_mode_call = 0
-        self.last_mode_state = 'STABILIZE'
+        self.last_mode = 'STABILIZE'
         self.mode_update_rate = 0.75 # secs
 
         self.last_home_call = 0
         self.last_home = None
-        self.home_update_rate = 10 #secs
+        self.home_update_rate = 5 #secs
 
         self.last_set_velocity = 0
         self.vel_update_rate = 0.1 #secs
@@ -150,7 +150,7 @@ class VehicleControl(object):
 
     #get_location - returns the lat, lon, alt of vehicle
     def get_location(self, timestamp = None):
-        if timestamp is not None: #interpolate
+        if timestamp is not None and timestamp != 0: #interpolate
             loc = self.vehicle_pos.get_location(timestamp)
             if loc is not None:
                 return True, loc
@@ -158,7 +158,7 @@ class VehicleControl(object):
 
     #get_attitude - returns pitch, roll, and yaw of vehicle
     def get_attitude(self, timestamp = None):
-        if timestamp is not None: #interpolate
+        if timestamp is not None and timestamp != 0: #interpolate
             pos = self.vehicle_pos.get_attitude(timestamp)
             if pos is not None:
                 return True, pos

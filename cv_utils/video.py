@@ -65,7 +65,7 @@ class Video:
         if self.camera is not None:
             return self.camera
         else:
-            print 'Starting Camera....'
+            print 'Starting Camera:', src
 
             #setup generic video capture device
             try:
