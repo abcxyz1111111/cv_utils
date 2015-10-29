@@ -62,11 +62,11 @@ class Video:
 
     # get_camera - initialises camera and returns VideoCapture object
     def get_camera(self,src="0"):
+        print 'Starting Camera:', src
+
         if self.camera is not None:
             return self.camera
         else:
-            print 'Starting Camera:', src
-
             #setup generic video capture device
             try:
                 self.camera = cv2.VideoCapture(int(src))

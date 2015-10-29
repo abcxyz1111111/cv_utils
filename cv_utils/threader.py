@@ -13,6 +13,8 @@ class Threader(threading.Thread):
         self.args = args
         self.iterations = iterations
         self.exit = False
+        self.paused = False
+        self.ret = None
         Threader.active_threads.append(self)
 
     #run the target
@@ -20,11 +22,14 @@ class Threader(threading.Thread):
         #execute task
         try:
             while not self.exit and (self.iterations > 0 or self.iterations == -1):
-                if self.args is not None:
-                    self.target(self.args)
+                if not self.paused:
+                    if self.args is not None:
+                        self.ret = self.target(self.args)
+                    else:
+                        self.ret = self.target()
+                    self.iterations = max(-1,self.iterations - 1)
                 else:
-                    self.target()
-                self.iterations = max(-1,self.iterations - 1)
+                    time.sleep(0.1)
         except Exception as err:
             exc_type, exc_value, exc_tb = sys.exc_info()
             traceback.print_exception(exc_type, exc_value, exc_tb)
@@ -37,6 +42,12 @@ class Threader(threading.Thread):
     #request the thread to stop at the next iteration
     def stop(self):
         self.exit = True
+
+    def pause(self):
+        self.paused = True
+
+    def resume(self):
+        self.paused = False
 
     @classmethod
     #request all threads to stop at the next iteration
