@@ -48,6 +48,8 @@ class VehicleControl(object):
         self.last_report_landing_target = 0
         self.landing_update_rate =  0.02 #secs
 
+        self.controlling_gimbal = False
+
         self.vehicle_pos = Vehicle_Pos() #used to interpolate drones location and attitude
 
 
@@ -93,18 +95,65 @@ class VehicleControl(object):
         return self.vehicle.armed
 
     # set_yaw - send condition_yaw mavlink command to vehicle so it points at specified heading (in degrees)
-    def set_yaw(self, heading):
-        # create the CONDITION_YAW command
-        msg = self.vehicle.message_factory.mission_item_encode(0, 0,  # target system, target component
-                                                     0,     # sequence
-                                                     mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, # frame
-                                                     mavlink.MAV_CMD_CONDITION_YAW,         # command
-                                                     2, # current - set to 2 to make it a guided command
-                                                     0, # auto continue
-                                                     heading, 0, 0, 0, 0, 0, 0) # param 1 ~ 7
+    def set_yaw(self, heading, relative=False, speed = 0, direction = 1):
+        if relative:
+            is_relative=1 #yaw relative to direction of travel
+        else:
+            is_relative=0 #yaw is an absolute angle
+        # create the CONDITION_YAW command using command_long_encode()
+        msg = self.vehicle.message_factory.command_long_encode(
+                                                        0, 0,    # target system, target component
+                                                        mavlink.MAV_CMD_CONDITION_YAW, #command
+                                                        0, #confirmation
+                                                        heading,    # param 1, yaw in degrees
+                                                        speed,          # param 2, yaw speed deg/s
+                                                        direction,          # param 3, direction -1 ccw, 1 cw
+                                                        is_relative, # param 4, relative offset 1, absolute angle 0
+                                                        0, 0, 0)    # param 5 ~ 7 not used
         # send command to vehicle
         self.vehicle.send_mavlink(msg)
         self.vehicle.flush()
+
+    # set_gimbal - Set the gimbal's yaw and pitch(in degrees)
+    def set_gimbal(self, yaw, pitch):
+        self.acquire_gimbal()
+        msg = self.vehicle.message_factory.mount_control_encode(
+                                                        0, 1,    # target system, target component
+                                                        pitch * 100, # pitch is in centidegrees
+                                                        0.0, # roll
+                                                        yaw * 100, # yaw is in centidegrees
+                                                        0) # save position
+        self.vehicle.send_mavlink(msg)
+        self.vehicle.flush()
+
+    # acquire_gimbal - take control of the gimbal
+    def acquire_gimbal(self):
+        if not self.controlling_gimbal:
+            # set gimbal targeting mode
+            msg = self.vehicle.message_factory.mount_configure_encode(
+                                                            0, 1,    # target system, target component
+                                                            mavlink.MAV_MOUNT_MODE_MAVLINK_TARGETING,  #mount_mode
+                                                            1,  # stabilize roll
+                                                            1,  # stabilize pitch
+                                                            1,  # stabilize yaw
+                                                            )
+            self.vehicle.send_mavlink(msg)
+            self.vehicle.flush()
+            self.controlling_gimbal = True
+
+    # release_gimbal - restore control of gimbal to user
+    def release_gimbal(self):
+        if self.controlling_gimbal:
+            msg = self.vehicle.message_factory.mount_configure_encode(
+                                                            0, 1,    # target system, target component
+                                                            mavlink.MAV_MOUNT_MODE_RC_TARGETING,  #mount_mode
+                                                            1,  # stabilize roll
+                                                            1,  # stabilize pitch
+                                                            1,  # stabilize yaw
+                                                            )
+            self.vehicle.send_mavlink(msg)
+            self.vehicle.flush()
+            self.controlling_gimbal = False
 
     # set_velocity - send nav_velocity command to vehicle to request it fly in specified direction
     def set_velocity(self, velocity_x, velocity_y, velocity_z):
@@ -172,7 +221,7 @@ class VehicleControl(object):
             print 'Waiting for intial home lock: Requires armed status....'
             while(self.vehicle.armed == False):
                 time.sleep(0.3)
-            print 'Got valid intial home location'
+            print 'Got valid initial home location'
 
 
         if(time.time() - self.last_home_call > self.home_update_rate):
