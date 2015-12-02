@@ -52,6 +52,8 @@ class VehicleControl(object):
 
         self.vehicle_pos = Vehicle_Pos() #used to interpolate drones location and attitude
 
+        self.vehicle_time_diff = None
+
 
 
     # connect - connects to droneAPI.
@@ -253,8 +255,11 @@ class VehicleControl(object):
         self.vehicle.mode = VehicleMode(mode)
         self.vehicle.flush()
 
+    # message_handler - handle incoming vehicle messages
     def message_handler(self,m):
+        receive_time = time.time()
         typ = m.get_type()
+        #buffer vehicle location
         if typ == 'GLOBAL_POSITION_INT':
             timestamp = m.time_boot_ms * 1000 #usec
             (lat,lon,alt) = (m.lat /1.0e7, m.lat/1.0e7,m.relative_alt/1000.0)
@@ -262,13 +267,25 @@ class VehicleControl(object):
             loc = Location(lat,lon,alt)
             vel = Point3(vx,vy,vz)
             self.vehicle_pos.put_location(timestamp,loc,vel)
-
+        #buffer vehicle attitude
         if typ == 'ATTITUDE':
             timestamp = m.time_boot_ms * 1000 #usec
             att = Attitude(m.pitch, m.yaw, m.roll) #radians
             vel = Point3(m.rollspeed, m.pitchspeed, m.yawspeed) #rad/sec
             self.vehicle_pos.put_attitude(timestamp,att,vel)
+        #attempt to sync system time
+        if typ == 'SYSTEM_TIME':
+            timestamp = m.time_boot_ms * 1000 #usec
+            diff = (receive_time * 1e6) - timestamp
+            #Use shift where USB delay is smallest. This does not account for clock drift!
+            if self.vehicle_time_diff is None or diff < self.vehicle_time_diff:
+                self.vehicle_time_diff = diff
 
+    # time_us - vehicle time in microseconds(loose time sync)
+    def time_us(self):
+        if self.vehicle_time_diff is None:
+            return 0
+        return (time.time() * 1e6) - self.vehicle_time_diff
 
     # run - should be called repeatedly from parent
     def run(self):
