@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
 
         cv2.imshow('raw',img)
-        k = cv2.waitKey(1)  & 0xFF
+        k = cv2.waitKey(0)  & 0xFF
 
         #process frame when user press 'c' key
         if k == ord('c'):
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     #analyze images to calculte distortion
     rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, (w, h), None, None)
 
-    print "RMS: ", rms
+    print "RMS:\n", rms
     print "camera matrix:\n", camera_matrix
-    print "distortion coefficients: ", dist_coefs
+    print "distortion coefficients:\n", dist_coefs
     cv2.destroyAllWindows()

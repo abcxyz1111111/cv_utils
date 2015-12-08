@@ -27,28 +27,6 @@ class Video:
 
         # get which camera we will use
         self.camera_source = source
-        '''
-        #get camera distortion matrix and intrinsics. Defaults: logitech c920
-        mtx = np.array([[ 614.01269552,0,315.00073982],
-                        [ 0,614.43556296,237.14926858],
-                        [ 0,0,1.0]])
-        dist = np.array([0.12269303, -0.26618881,0.00129035, 0.00081791,0.17005303])
-
-        self.matrix  = VN_config.get_array('camera','matrix', mtx)
-        self.distortion = VN_config.get_array('camera', 'distortion', dist)
-
-
-        '''
-        self.img_width = 1280
-        self.img_height= 720
-
-        self.matrix = np.array([[764.17228563, 0.0, 676.22364905],
-                         [0.0, 766.63752673, 349.10277454],
-                         [0.0, 0.0, 1.0]])
-        self.distortion = np.array([[-0.26516979,  0.00344694,  0.00081852, -0.00055108,  0.1954367 ]])
-
-        self.newcameramtx, self.roi=cv2.getOptimalNewCameraMatrix(self.matrix,self.distortion,(self.img_width,self.img_height),1,(self.img_width,self.img_height))
-
 
         #create a camera object
         self.camera = None
@@ -177,22 +155,9 @@ class Video:
         # return image to caller
         return success_flag,img
 
-    #undisort_image- removes any distortion caused by the camera lense
-    def undisort_image(self,frame):
-        #undistort
-        dst = cv2.undistort(frame, self.matrix, self.distortion, None, self.newcameramtx)
-
-        # crop the image
-        x,y,w,h = self.roi
-        dst = dst[y:y+h, x:x+w]
-
-        return dst
     # main - tests SmartCameraVideo class
     def main(self):
-        #open a camera
-        #self.get_camera(0)
 
-        # start background process
         self.start_capture()
 
         #did we start background capture
@@ -203,8 +168,6 @@ class Video:
             ret, img = self.get_image()
             # check image is valid
             if img is not None:
-                #undistort image
-                img = self.undisort_image(img)
                 # display image
                 cv2.imshow ('image_display', img)
             else:
@@ -220,9 +183,6 @@ class Video:
 
         # send exit command to image capture process
         self.stop_capture()
-
-
-
 
 if __name__ == "__main__":
     video = Video()
